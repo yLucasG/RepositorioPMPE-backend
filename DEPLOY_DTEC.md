@@ -83,10 +83,9 @@ Edite o arquivo `.env` que acabou de ser criado e preencha:
 - `FRONTEND_REPO` / `FRONTEND_REF` — deixe comentado/em branco pra usar o repositório
   e a branch oficiais do frontend. Só preencha se quiserem apontar pra um fork ou
   branch diferente.
-- `AUTH_MODE` — deixe `local` (padrão) pra login próprio da aplicação. A opção
-  `ldap-pm` (login com a credencial institucional da PM) está descrita em
-  [`api/auth-ldap-pm.ts`](api/auth-ldap-pm.ts) — leiam os comentários do arquivo
-  antes de habilitar.
+- `LDAP_API_URL` — deixe comentado/em branco pra usar o endpoint oficial da PM (já
+  configurado por padrão). Login é sempre pela credencial institucional da PM — ver
+  [`api/auth-ldap-pm.ts`](api/auth-ldap-pm.ts) pros detalhes.
 
 ### 2.3. Subir tudo
 ```
@@ -104,27 +103,14 @@ docker compose logs -f app
 Deve aparecer `Servidor rodando em http://localhost:3000`. Ctrl+C só sai do
 acompanhamento dos logs, não derruba o container.
 
-### 2.4. Criar o primeiro usuário admin
-Não existe tela de cadastro (proposital — só quem tem acesso ao servidor consegue
-criar um admin). Rode:
-```
-docker compose exec app node -e "console.log(require('bcryptjs').hashSync('SUA_SENHA_AQUI', 10))"
-```
-Troque `SUA_SENHA_AQUI` pela senha desejada e copie o hash que aparece (começa com
-`$2a$` ou `$2b$`). Depois:
-```
-docker compose exec db psql -U repositorio -d repositorio -c "INSERT INTO \"Admin\" (id, usuario, \"senhaHash\") VALUES (gen_random_uuid()::text, 'NOME_DE_USUARIO', 'HASH_COPIADO_ACIMA');"
-```
-Troque `NOME_DE_USUARIO` e o hash colado. Se `gen_random_uuid()` der erro (extensão
-não habilitada), troque por uma string qualquer única, ex: `'admin-1'`.
-
-(Se estiverem usando `AUTH_MODE=ldap-pm`, esse passo não é necessário — o primeiro
-login de qualquer credencial válida da PM já cria o registro sozinho.)
-
-### 2.5. Acessar
+### 2.4. Acessar
 Abra `http://ENDERECO_DO_SERVIDOR:3000` no navegador (ou `http://localhost:3000` se
 estiver testando na própria máquina do servidor). O login admin fica em
-`/admin/login`, com o usuário/senha criados no passo anterior.
+`/admin/login` — não existe tela de cadastro nem senha própria desta aplicação:
+qualquer credencial institucional válida da PM já entra como admin (ver
+[`api/auth-ldap-pm.ts`](api/auth-ldap-pm.ts) pros detalhes e limitações dessa
+integração — inclusive o fato de não ter restrição por Sistema/Perfil ainda, então
+qualquer efetivo com login ativo na PM consegue editar o acervo).
 
 ---
 
@@ -341,25 +327,17 @@ nssm start RepositorioDTEC
 O `.env` também é lido automaticamente, desde que fique dentro de `AppDirectory`.
 Confira o status pelo `services.msc` (nome "RepositorioDTEC").
 
-### 7.9. Criar o primeiro usuário admin
-Não existe tela de cadastro (proposital). Na pasta do backend, rode:
-```
-node -e "console.log(require('bcryptjs').hashSync('SUA_SENHA_AQUI', 10))"
-```
-Copie o hash gerado (começa com `$2a$` ou `$2b$`) e insira no banco:
-```
-psql "$DATABASE_URL" -c "INSERT INTO \"Admin\" (id, usuario, \"senhaHash\") VALUES (gen_random_uuid()::text, 'NOME_DE_USUARIO', 'HASH_COPIADO_ACIMA');"
-```
-Se `gen_random_uuid()` der erro (extensão `pgcrypto` não habilitada nesse Postgres),
-troque por uma string qualquer única, ex.: `'admin-1'`.
+Acessar: não existe tela de cadastro nem senha própria — qualquer credencial
+institucional válida da PM já entra como admin em `/admin/login` (ver
+[`api/auth-ldap-pm.ts`](api/auth-ldap-pm.ts) pros detalhes e limitações).
 
-### 7.10. HTTPS / domínio público
+### 7.9. HTTPS / domínio público
 Sem Docker, o Caddy da seção 3 não se aplica — use o que o DTEC já tiver de proxy
 reverso (nginx, IIS, outro Caddy instalado direto no SO) apontando pra
 `http://localhost:3000`, com as mesmas duas dependências da seção 3: domínio com DNS
 apontando pro IP público e portas 80/443 liberadas/encaminhadas pelo time de rede.
 
-### 7.11. Atualizando o sistema no futuro
+### 7.10. Atualizando o sistema no futuro
 Backend:
 ```
 git pull
@@ -378,7 +356,7 @@ Linux, ou `nssm restart RepositorioDTEC` no Windows) — ele já serve a versão
 frontend no próximo request, não precisa reiniciar nada do lado do frontend (não é
 um processo à parte). O banco não é afetado.
 
-### 7.12. Backup
+### 7.11. Backup
 **Banco:** `pg_dump -U USUARIO NOME_DO_BANCO > backup-$(date +%Y%m%d).sql` (peça pro
 time de banco do DTEC incluir isso na rotina de backup deles, se já tiverem uma).
 **PDFs:** é só a pasta apontada em `UPLOADS_DIR` — inclua na rotina de backup normal

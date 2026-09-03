@@ -27,18 +27,18 @@ builda o frontend sozinho (ver Dockerfile).
   `VisualizacaoTrabalho` (controle de contagem de visualizações).
 - **Armazenamento de PDFs** — salvos em disco (pasta configurável via `UPLOADS_DIR`),
   sem depender de nenhum serviço externo de storage.
-- **Autenticação institucional (opcional)** — [`api/auth-ldap-pm.ts`](api/auth-ldap-pm.ts):
-  integração com o sistema de login que a PM já usa, atrás da variável `AUTH_MODE`
-  (padrão `local`, sem afetar o login próprio da aplicação). Detalhes e limitações
-  no topo do próprio arquivo.
+- **Autenticação institucional** — [`api/auth-ldap-pm.ts`](api/auth-ldap-pm.ts):
+  o login é sempre pela credencial da PM (não existe senha própria desta
+  aplicação). Detalhes e limitações — inclusive a ausência de restrição por
+  Sistema/Perfil por enquanto — no topo do próprio arquivo.
 - **Entrypoint self-hosted** ([`api/server.ts`](api/server.ts)) — processo Node
   contínuo que serve a API **e** o build estático do frontend (buildado a partir do
   outro repositório) na mesma porta.
 
 ## 🏢 Instalando no servidor do DTEC
 
-Passo a passo completo (com e sem Docker, criação do primeiro admin, HTTPS, backup
-e atualização) em **[DEPLOY_DTEC.md](DEPLOY_DTEC.md)**.
+Passo a passo completo (com e sem Docker, HTTPS, backup e atualização) em
+**[DEPLOY_DTEC.md](DEPLOY_DTEC.md)**.
 
 ## 💻 Rodando localmente para desenvolvimento
 
@@ -71,3 +71,7 @@ npm start
 Se também quiser o frontend rodando com hot-reload apontando pra essa API local, veja
 o README do [RepositorioPMPE-frontend](https://github.com/yLucasG/RepositorioPMPE-frontend)
 — o `proxy.conf.json` de lá já está configurado pra `localhost:3000`.
+
+Pra testar o login localmente, precisa de uma credencial institucional real da PM —
+não tem senha própria/fake pra usar em dev, `/api/admin/login` sempre valida contra
+[`api/auth-ldap-pm.ts`](api/auth-ldap-pm.ts).

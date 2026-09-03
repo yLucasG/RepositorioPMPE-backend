@@ -31,7 +31,6 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-repositorio}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-repositorio}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      AUTH_MODE: ${AUTH_MODE:-local}
       LDAP_API_URL: ${LDAP_API_URL:-}
       PORT: 3000
     ports:

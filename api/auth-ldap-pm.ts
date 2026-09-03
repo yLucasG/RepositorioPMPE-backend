@@ -24,10 +24,10 @@
 // formato "Campo: valor", que a gente precisa parsear (função abaixo). Os dados de
 // identidade (matrícula, nome de guerra, e-mail, cargo, unidade) se repetem em
 // todas as linhas — só muda Sistema/Perfil por linha. "Repositório Acadêmico"
-// ainda não aparece nessa lista (não estamos cadastrados como um "Sistema" na PM),
-// então por enquanto tratamos isso só como "prova de identidade": a API confirma
-// quem é a pessoa, e quem decide se ela pode entrar NESTE app é a nossa própria
-// tabela Admin (ver app.ts) — não a lista de sistemas retornada aqui.
+// ainda não aparece nessa lista (não estamos cadastrados como um "Sistema" na PM) —
+// por enquanto, qualquer credencial válida aqui já é suficiente pra virar admin
+// deste app (ver app.ts): não tem restrição por Sistema/Perfil ainda, é uma etapa
+// temporária até o DTEC cadastrar o Repositório Acadêmico como Sistema próprio.
 //
 // ⚠️ Ainda não testado/confirmado: o formato de uma resposta de ERRO (senha errada).
 // O código abaixo trata como falha qualquer resposta que não seja HTTP ok E
