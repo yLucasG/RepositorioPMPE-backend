@@ -3,10 +3,7 @@
 > API + banco de dados + armazenamento de PDFs do sistema institucional de gestão da
 > produção acadêmica da Polícia Militar de Pernambuco.
 
-Este é o **backend**. O frontend (Angular) vive num repositório separado:
-**[RepositorioPMPE-frontend](https://github.com/yLucasG/RepositorioPMPE-frontend)**.
-Os dois são independentes (times diferentes podem mexer em cada um sem esbarrar no
-outro), mas continuam sendo instalados e rodando juntos: o processo Node deste
+O processo Node deste
 repositório serve o build do frontend + a API, os dois pela mesma porta — a
 instalação self-hosted continua sendo um único `docker compose up`, que já busca e
 builda o frontend sozinho (ver Dockerfile).
