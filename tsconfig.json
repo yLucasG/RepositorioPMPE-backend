@@ -1,0 +1,18 @@
+// Compila api/**/*.ts pra JS puro (dist-server/), usado tanto no build Docker
+// quanto na instalação nativa (sem Docker) — ver DEPLOY_DTEC.md.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist-server",
+    "rootDir": "api",
+    "types": ["node"],
+    "noEmit": false
+  },
+  "include": ["api/**/*.ts"]
+}

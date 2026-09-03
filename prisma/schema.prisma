@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model TrabalhoAcademico {
+  id          String   @id @default(cuid())
+  titulo      String
+  autor       String
+  resumo      String
+  ano           Int
+  categoria     String
+  tipo          String   @default("")
+  url_arquivo   String
+  referencias   String[]
+  visualizacoes Int      @default(0)
+  downloads     Int      @default(0)
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  visualizacoesRegistros VisualizacaoTrabalho[]
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  usuario   String   @unique
+  senhaHash String
+}
+
+// Registra a última visualização por (trabalho, origem) para impedir que a mesma
+// origem infle o contador de visualizações repetindo a requisição.
+model VisualizacaoTrabalho {
+  id            String   @id @default(cuid())
+  trabalhoId    String
+  trabalho      TrabalhoAcademico @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+  ipHash        String
+  visualizadoEm DateTime @default(now())
+
+  @@unique([trabalhoId, ipHash])
+  @@index([visualizadoEm])
+}

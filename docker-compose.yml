@@ -1,0 +1,68 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-repositorio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-repositorio}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # Roda só na primeira inicialização (volume vazio) — cria as tabelas do zero.
+      - ./prisma/schema_completo.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-repositorio}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      args:
+        # Troque se quiserem apontar pra outro repositório/branch/tag do frontend.
+        FRONTEND_REPO: ${FRONTEND_REPO:-https://github.com/yLucasG/RepositorioPMPE-frontend.git}
+        FRONTEND_REF: ${FRONTEND_REF:-main}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-repositorio}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-repositorio}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AUTH_MODE: ${AUTH_MODE:-local}
+      LDAP_API_URL: ${LDAP_API_URL:-}
+      PORT: 3000
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - uploads_data:/app/uploads
+
+  # Opcional: só sobe com `docker compose --profile public up -d`. Expõe o site na
+  # internet com HTTPS automático (Let's Encrypt), contanto que o domínio em DOMAIN
+  # já aponte (DNS) pro IP público do DTEC e as portas 80/443 estejam liberadas e
+  # encaminhadas (port forward) pra esta máquina. Enquanto isso não estiver pronto,
+  # não suba este serviço — o site continua acessível normalmente pela rede interna
+  # em http://IP_DA_MAQUINA:3000 sem ele.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    profiles: ["public"]
+    depends_on:
+      - app
+    environment:
+      DOMAIN: ${DOMAIN:?defina DOMAIN no .env pra usar o profile "public"}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  db_data:
+  uploads_data:
+  caddy_data:
+  caddy_config:

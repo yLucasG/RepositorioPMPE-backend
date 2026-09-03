@@ -1,0 +1,6 @@
+{$DOMAIN} {
+	# HTTPS automático (Let's Encrypt) — o Caddy cuida de emitir e renovar o
+	# certificado sozinho, contanto que a porta 80 esteja acessível da internet
+	# (challenge HTTP-01) e o DNS do domínio aponte pro IP público do DTEC.
+	reverse_proxy app:3000
+}
