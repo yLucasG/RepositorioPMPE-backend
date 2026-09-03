@@ -265,9 +265,14 @@ PORT=3000
 ### 7.5. Instalar dependências e criar as tabelas
 ```
 npm ci
+npx prisma generate
 ```
-Isso já roda `prisma generate` sozinho (script `postinstall`). Em seguida, crie as
-tabelas no banco que o DTEC apontou em `DATABASE_URL` (só precisa rodar uma vez):
+O `npm ci` já roda `prisma generate` sozinho (script `postinstall`), mas em alguns
+ambientes Windows esse `prisma generate` automático sai incompleto (dá erro de
+compilação mais adiante, tipo `Module has no exported member 'PrismaClient'`) — rodar
+`npx prisma generate` de novo, manualmente, evita isso sem custo nenhum. Em seguida,
+crie as tabelas no banco que o DTEC apontou em `DATABASE_URL` (só precisa rodar uma
+vez):
 ```
 psql "$DATABASE_URL" -f prisma/schema_completo.sql
 ```

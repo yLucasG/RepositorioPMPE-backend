@@ -26,9 +26,16 @@ WORKDIR /app
 # variável — não conecta em banco nenhum nesta etapa.
 ENV DATABASE_URL="postgresql://user:pass@localhost:5432/placeholder"
 
-COPY package*.json ./
-RUN npm ci
+# Copia tudo (não só package*.json) ANTES do npm ci: o postinstall roda
+# "prisma generate", que exige prisma/schema.prisma já presente — copiar só o
+# package.json antes (padrão comum pra cache de layer) faz o build inteiro falhar
+# aqui ("Could not find Prisma Schema"), confirmado testando esse cenário à parte.
 COPY . .
+RUN npm ci
+# Redundante de propósito: já visto o "prisma generate" do postinstall gerar um
+# client incompleto de vez em quando (erro de compilação "no exported member
+# PrismaClient" no passo seguinte) — rodar de novo aqui evita isso sem custo.
+RUN npx prisma generate
 RUN npm run build
 
 # ---- Runtime ----
