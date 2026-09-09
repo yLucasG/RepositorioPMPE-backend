@@ -347,8 +347,8 @@ app.post("/api/trabalhos/:id/download", async (req, res) => {
 
 // Login: autentica direto contra o sistema de login da PM (ver
 // api/auth-ldap-pm.ts) — não existe mais senha própria desta aplicação.
-// Acesso ao painel é restrito a quem o DTEC cadastrou no "Sistema" REPOSITORIO
-// da identidade da PM (Status ATIVO): uma credencial válida da PM que não esteja
+// Acesso ao painel é restrito a quem o DTEC cadastrou no "Sistema" REPO da
+// identidade da PM (Status ATIVO): uma credencial válida da PM que não esteja
 // nesse sistema autentica, mas recebe 403 aqui e não entra. Sem fallback local:
 // se a API da PM ficar fora do ar, ninguém consegue logar até normalizar.
 app.post("/api/admin/login", loginLimiter, async (req, res) => {
@@ -361,7 +361,7 @@ app.post("/api/admin/login", loginLimiter, async (req, res) => {
       return;
     }
     if (!temAcessoAoRepositorio(resultado)) {
-      res.status(403).json({ error: "Seu usuário não está cadastrado no sistema REPOSITORIO da PM. Solicite o acesso ao DTEC." });
+      res.status(403).json({ error: "Seu usuário não tem acesso ao painel do Repositório Acadêmico. Solicite ao DTEC o cadastro no sistema REPO da PM." });
       return;
     }
     // Registra (ou reaproveita) o usuário localmente na primeira vez que ele loga —

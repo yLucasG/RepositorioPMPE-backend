@@ -26,13 +26,14 @@
 // todas as linhas — só muda Sistema/Perfil por linha.
 //
 // CONTROLE DE ACESSO AO PAINEL: o DTEC cadastrou o Repositório Acadêmico como um
-// "Sistema" próprio na identidade da PM, com a sigla REPOSITORIO. A partir daí,
-// só entra no painel admin quem tem uma linha com `Sistema: REPOSITORIO` e
-// `Status: ATIVO` nessa resposta — ou seja, quem o DTEC cadastrou nesse sistema.
-// Uma credencial válida da PM que não esteja no sistema REPOSITORIO autentica
-// (a senha confere), mas NÃO tem acesso ao painel. Ver `temAcessoAoRepositorio`
-// abaixo e o uso em app.ts. A sigla é configurável por LDAP_SISTEMA_REPOSITORIO
-// (padrão "REPOSITORIO") caso a PM mude o nome cadastrado.
+// "Sistema" próprio na identidade da PM, com a sigla REPO (confirmado no retorno
+// real do LDAP em 2026-09-09). A partir daí, só entra no painel admin quem tem
+// uma linha com `Sistema: REPO` e `Status: ATIVO` nessa resposta — ou seja, quem
+// o DTEC cadastrou nesse sistema (qualquer Perfil serve; o sistema REPO existe só
+// pra este app). Uma credencial válida da PM que não esteja no sistema REPO
+// autentica (a senha confere), mas NÃO tem acesso ao painel. Ver
+// `temAcessoAoRepositorio` abaixo e o uso em app.ts. A sigla é configurável por
+// LDAP_SISTEMA_REPOSITORIO (padrão "REPO") caso a PM mude o nome cadastrado.
 //
 // ⚠️ Ainda não testado/confirmado: o formato de uma resposta de ERRO (senha errada).
 // O código abaixo trata como falha qualquer resposta que não seja HTTP ok E
@@ -64,7 +65,7 @@ export interface ResultadoAutenticacaoPm {
 const LDAP_API_URL = process.env["LDAP_API_URL"] || "https://ldap.api.pm.pe.gov.br/api/";
 
 /** Sigla do "Sistema" cadastrado pelo DTEC na identidade da PM para este app. */
-const SISTEMA_REPOSITORIO = (process.env["LDAP_SISTEMA_REPOSITORIO"] || "REPOSITORIO").trim().toUpperCase();
+const SISTEMA_REPOSITORIO = (process.env["LDAP_SISTEMA_REPOSITORIO"] || "REPO").trim().toUpperCase();
 
 /** Converte "Campo: valor" em ["Campo", "valor"]. */
 function parseCampo(linha: string): [string, string] {
@@ -143,9 +144,9 @@ export async function autenticarNaPm(usuario: string, senha: string): Promise<Re
 }
 
 /**
- * Retorna true se a pessoa autenticada tem um perfil ATIVO no "Sistema"
- * REPOSITORIO da identidade da PM — ou seja, foi cadastrada pelo DTEC para
- * acessar o painel administrativo deste app.
+ * Retorna true se a pessoa autenticada tem um perfil ATIVO no "Sistema" REPO
+ * da identidade da PM — ou seja, foi cadastrada pelo DTEC para acessar o painel
+ * administrativo deste app.
  *
  * Uma credencial válida da PM que não esteja nesse sistema retorna false:
  * autentica, mas não entra no painel.
