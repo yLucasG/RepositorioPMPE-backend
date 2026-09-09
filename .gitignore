@@ -53,3 +53,6 @@ Thumbs.db
 .env
 .env.local
 .env.production
+
+# Scripts locais de teste/diagnóstico (não fazem parte do sistema)
+_*.mjs
