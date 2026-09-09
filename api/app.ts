@@ -10,7 +10,7 @@ import { GoogleGenerativeAI, GoogleGenerativeAIFetchError, SchemaType, type Obje
 import { createHmac } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { autenticarNaPm } from "./auth-ldap-pm.js";
+import { autenticarNaPm, temAcessoAoRepositorio } from "./auth-ldap-pm.js";
 
 // Retorna sempre `string` (nunca `string | undefined`), então o TypeScript não
 // reclama quando a variável é usada dentro de closures (handlers de rota) definidas
@@ -347,12 +347,10 @@ app.post("/api/trabalhos/:id/download", async (req, res) => {
 
 // Login: autentica direto contra o sistema de login da PM (ver
 // api/auth-ldap-pm.ts) — não existe mais senha própria desta aplicação.
-// ⚠️ Sem whitelist: QUALQUER credencial válida da PM entra como admin (criação de
-// trabalho, upload/exclusão de PDF, tudo). Combinado assim como etapa temporária,
-// até o DTEC cadastrar o Repositório Acadêmico como um "Sistema" próprio na
-// identidade da PM e a gente poder restringir por Sistema/Perfil, como o Portal
-// PMPE já faz com os outros sistemas deles. Sem fallback local: se a API da PM
-// ficar fora do ar, ninguém consegue logar até normalizar.
+// Acesso ao painel é restrito a quem o DTEC cadastrou no "Sistema" REPOSITORIO
+// da identidade da PM (Status ATIVO): uma credencial válida da PM que não esteja
+// nesse sistema autentica, mas recebe 403 aqui e não entra. Sem fallback local:
+// se a API da PM ficar fora do ar, ninguém consegue logar até normalizar.
 app.post("/api/admin/login", loginLimiter, async (req, res) => {
   try {
     const { usuario, senha } = req.body;
@@ -360,6 +358,10 @@ app.post("/api/admin/login", loginLimiter, async (req, res) => {
     const resultado = await autenticarNaPm(usuario, senha);
     if (!resultado.ok) {
       res.status(401).json({ error: "Usuário ou senha inválidos." });
+      return;
+    }
+    if (!temAcessoAoRepositorio(resultado)) {
+      res.status(403).json({ error: "Seu usuário não está cadastrado no sistema REPOSITORIO da PM. Solicite o acesso ao DTEC." });
       return;
     }
     // Registra (ou reaproveita) o usuário localmente na primeira vez que ele loga —

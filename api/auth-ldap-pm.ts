@@ -23,16 +23,28 @@
 // Não é uma lista de campos JSON normais — cada linha é um array de strings no
 // formato "Campo: valor", que a gente precisa parsear (função abaixo). Os dados de
 // identidade (matrícula, nome de guerra, e-mail, cargo, unidade) se repetem em
-// todas as linhas — só muda Sistema/Perfil por linha. "Repositório Acadêmico"
-// ainda não aparece nessa lista (não estamos cadastrados como um "Sistema" na PM) —
-// por enquanto, qualquer credencial válida aqui já é suficiente pra virar admin
-// deste app (ver app.ts): não tem restrição por Sistema/Perfil ainda, é uma etapa
-// temporária até o DTEC cadastrar o Repositório Acadêmico como Sistema próprio.
+// todas as linhas — só muda Sistema/Perfil por linha.
+//
+// CONTROLE DE ACESSO AO PAINEL: o DTEC cadastrou o Repositório Acadêmico como um
+// "Sistema" próprio na identidade da PM, com a sigla REPOSITORIO. A partir daí,
+// só entra no painel admin quem tem uma linha com `Sistema: REPOSITORIO` e
+// `Status: ATIVO` nessa resposta — ou seja, quem o DTEC cadastrou nesse sistema.
+// Uma credencial válida da PM que não esteja no sistema REPOSITORIO autentica
+// (a senha confere), mas NÃO tem acesso ao painel. Ver `temAcessoAoRepositorio`
+// abaixo e o uso em app.ts. A sigla é configurável por LDAP_SISTEMA_REPOSITORIO
+// (padrão "REPOSITORIO") caso a PM mude o nome cadastrado.
 //
 // ⚠️ Ainda não testado/confirmado: o formato de uma resposta de ERRO (senha errada).
 // O código abaixo trata como falha qualquer resposta que não seja HTTP ok E
 // `status === "success"` com pelo menos uma linha em `data` — o que deve cobrir
 // tanto um 401/403 quanto um eventual 200 com `status` diferente de "success".
+
+/** Um "Sistema" da identidade da PM em que a pessoa tem um perfil (uma linha de `data`). */
+export interface SistemaPm {
+  sistema?: string;
+  perfil?: string;
+  status?: string;
+}
 
 export interface ResultadoAutenticacaoPm {
   ok: boolean;
@@ -45,9 +57,14 @@ export interface ResultadoAutenticacaoPm {
     unidade?: string;
     status?: string;
   };
+  /** Uma entrada por Sistema/Perfil que a pessoa tem na PM (todas as linhas de `data`). */
+  sistemas?: SistemaPm[];
 }
 
 const LDAP_API_URL = process.env["LDAP_API_URL"] || "https://ldap.api.pm.pe.gov.br/api/";
+
+/** Sigla do "Sistema" cadastrado pelo DTEC na identidade da PM para este app. */
+const SISTEMA_REPOSITORIO = (process.env["LDAP_SISTEMA_REPOSITORIO"] || "REPOSITORIO").trim().toUpperCase();
 
 /** Converte "Campo: valor" em ["Campo", "valor"]. */
 function parseCampo(linha: string): [string, string] {
@@ -56,9 +73,17 @@ function parseCampo(linha: string): [string, string] {
   return [linha.slice(0, idx).trim(), linha.slice(idx + 1).trim()];
 }
 
+/** Converte uma linha de `data` (array de "Campo: valor") num objeto { Campo: valor }. */
+function parseLinha(linha: unknown): Record<string, string> | null {
+  if (!Array.isArray(linha)) return null;
+  return Object.fromEntries(linha.map((l) => parseCampo(String(l))));
+}
+
 /**
  * Autentica usuário/senha contra o sistema de login que a PM já usa.
  * NÃO valida senha localmente — quem confirma a credencial é a API da PM.
+ * Só confirma que a credencial é válida; o acesso ao painel é decidido depois
+ * por `temAcessoAoRepositorio`.
  */
 export async function autenticarNaPm(usuario: string, senha: string): Promise<ResultadoAutenticacaoPm> {
   const authHeader = "Basic " + Buffer.from(`${usuario}:${senha}`).toString("base64");
@@ -87,21 +112,49 @@ export async function autenticarNaPm(usuario: string, senha: string): Promise<Re
     return { ok: false };
   }
 
-  const primeiraLinha: unknown = corpo.data[0];
-  if (!Array.isArray(primeiraLinha)) {
-    return { ok: true };
+  const data: unknown[] = corpo.data;
+  const linhas: Record<string, string>[] = data
+    .map(parseLinha)
+    .filter((campos): campos is Record<string, string> => campos !== null);
+
+  const sistemas: SistemaPm[] = linhas.map((campos) => ({
+    sistema: campos["Sistema"],
+    perfil: campos["Perfil"],
+    status: campos["Status"],
+  }));
+
+  const primeiraLinha = linhas[0];
+  if (!primeiraLinha) {
+    return { ok: true, sistemas };
   }
-  const campos = Object.fromEntries(primeiraLinha.map((l) => parseCampo(String(l))));
 
   return {
     ok: true,
     identidade: {
-      matricula: campos["Matricula"],
-      nomeDeGuerra: campos["Nome de Guerra"],
-      email: campos["Email"],
-      cargo: campos["Cargo"],
-      unidade: campos["Ome Disposição"],
-      status: campos["Status"],
+      matricula: primeiraLinha["Matricula"],
+      nomeDeGuerra: primeiraLinha["Nome de Guerra"],
+      email: primeiraLinha["Email"],
+      cargo: primeiraLinha["Cargo"],
+      unidade: primeiraLinha["Ome Disposição"],
+      status: primeiraLinha["Status"],
     },
+    sistemas,
   };
+}
+
+/**
+ * Retorna true se a pessoa autenticada tem um perfil ATIVO no "Sistema"
+ * REPOSITORIO da identidade da PM — ou seja, foi cadastrada pelo DTEC para
+ * acessar o painel administrativo deste app.
+ *
+ * Uma credencial válida da PM que não esteja nesse sistema retorna false:
+ * autentica, mas não entra no painel.
+ */
+export function temAcessoAoRepositorio(resultado: ResultadoAutenticacaoPm): boolean {
+  if (!resultado.ok || !resultado.sistemas) return false;
+  return resultado.sistemas.some(
+    (s) =>
+      (s.sistema ?? "").trim().toUpperCase() === SISTEMA_REPOSITORIO &&
+      (s.status ?? "").trim().toUpperCase() === "ATIVO",
+  );
 }

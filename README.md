@@ -26,8 +26,9 @@ builda o frontend sozinho (ver Dockerfile).
   sem depender de nenhum serviço externo de storage.
 - **Autenticação institucional** — [`api/auth-ldap-pm.ts`](api/auth-ldap-pm.ts):
   o login é sempre pela credencial da PM (não existe senha própria desta
-  aplicação). Detalhes e limitações — inclusive a ausência de restrição por
-  Sistema/Perfil por enquanto — no topo do próprio arquivo.
+  aplicação). O acesso ao painel é restrito a quem o DTEC cadastrou no "Sistema"
+  `REPOSITORIO` da identidade da PM (com `Status` ATIVO); uma credencial válida
+  fora desse sistema autentica mas recebe 403. Detalhes no topo do próprio arquivo.
 - **Entrypoint self-hosted** ([`api/server.ts`](api/server.ts)) — processo Node
   contínuo que serve a API **e** o build estático do frontend (buildado a partir do
   outro repositório) na mesma porta.
